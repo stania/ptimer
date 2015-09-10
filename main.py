@@ -59,7 +59,11 @@ class Window(QWidget):
         # init pomodoro state
         self.pomodoro = Pomodoro()
 
-        # window styling
+        # Let the whole window be a glass
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        # label styling
         self.style = \
             "<font style='font-family: Hack; color: #aaaaff; font-size:50px;'>{0:02d}:{1:02d}</font>"
         self.setLayout(QVBoxLayout())
@@ -70,12 +74,7 @@ class Window(QWidget):
         effect.setOffset(3)
         effect.setColor(Qt.black)
         self.label.setGraphicsEffect(effect)
-        # Let the whold window be a glass
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        self.setMouseTracking(True)
-        self.label.setMouseTracking(True)
+        # make mouse move event propagated to parent widget
         self.label.setAttribute(Qt.WA_TransparentForMouseEvents)
         # I don't know why the code below is needed
         # from ctypes import windll, c_int, byref
