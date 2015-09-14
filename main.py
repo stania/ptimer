@@ -7,6 +7,10 @@ from PyQt4.QtCore import *
 import time
 import pyhk
 
+class Config(object):
+    COLOR_NORMAL = '#aaaaff'
+    COLOR_ALARM_FG = '#ff0000'
+
 
 class Pomodoro(object):
     PAUSE = 0
@@ -36,6 +40,8 @@ class Pomodoro(object):
         self.state = Pomodoro.FOCUS
         self.state_started = time.time()
         self.state_length = 25 * 60
+        ## for debug
+        #self.state_length = 5
         self.update()
         print 'focus started'
 
@@ -43,18 +49,22 @@ class Pomodoro(object):
         self.state = Pomodoro.DISTRACTION
         self.state_started = time.time()
         self.state_length = 5 * 60
+        ## for debug
+        #self.state_length = 5
         self.update()
         print 'distracted!'
 
 
 class Window(QWidget):
     def __init__(self, *args):
+        '''
+        :type palette: QPalette
+        '''
         QWidget.__init__(self, *args)
 
         # setup global hotkeys
         self.hk = pyhk.pyhk()
-        self.hk.addHotkey(['Ctrl', 'Alt', '1'], self.on_focus)
-        self.hk.addHotkey(['Ctrl', 'Alt', '2'], self.on_distraction)
+        self.reinstall_hook()
 
         # init pomodoro state
         self.pomodoro = Pomodoro()
@@ -64,10 +74,24 @@ class Window(QWidget):
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         # label styling
-        self.style = \
-            "<font style='font-family: Hack; color: #aaaaff; font-size:50px;'>{0:02d}:{1:02d}</font>"
+        self.format = "{0:02d}:{1:02d}"
         self.setLayout(QVBoxLayout())
-        self.label = QLabel(self.style.format(0, 0))
+        self.label = QLabel()
+        self.default_style = {
+            'ff': 'Hack',
+            'fg': Config.COLOR_NORMAL,
+            'size': '50px'
+        }
+        self.stylesheet = '''
+                QLabel {{
+                    font-family: {ff};
+                    color: {fg};
+                    font-size: {size};
+                }}
+                '''
+        computed_style = self.stylesheet.format(**self.default_style);
+        print computed_style
+        self.label.setStyleSheet(computed_style)
         self.layout().addWidget(self.label)
         effect = QGraphicsDropShadowEffect()
         effect.setBlurRadius(10)
@@ -83,22 +107,36 @@ class Window(QWidget):
         self.ldown = False
         self.startTimer(100)
 
+    def reinstall_hook(self):
+        self.hk.removeHotkey()
+        self.hkid_focus = self.hk.addHotkey(['Ctrl', 'Alt', '1'], self.on_focus)
+        self.hkid_dist = self.hk.addHotkey(['Ctrl', 'Alt', '2'], self.on_distraction)
+
     def on_focus(self):
         self.pomodoro.start_focus()
 
     def on_distraction(self):
         self.pomodoro.on_distraction()
 
+    def update(self):
+        min = self.pomodoro.min
+        sec = self.pomodoro.sec
+        self.label.setText(self.format.format(min, sec))
+        gap = int(time.time() - self.pomodoro.state_started)
+        if self.pomodoro.state in [Pomodoro.FOCUS_OVER, Pomodoro.DISTRACTION_OVER] and gap % 2 == 1:
+            blinkstyle = self.default_style.copy()
+            blinkstyle['fg'] = Config.COLOR_ALARM_FG
+            self.label.setStyleSheet(self.stylesheet.format(**blinkstyle))
+        else:
+            self.label.setStyleSheet(self.stylesheet.format(**self.default_style))
+        self.repaint()
+
     def timerEvent(self, event):
         """
         :type event: QTimerEvent
         """
-
         self.pomodoro.update()
-        min = self.pomodoro.min
-        sec = self.pomodoro.sec
-        self.label.setText(self.style.format(min, sec));
-        self.repaint()
+        self.update()
 
     def mousePressEvent(self, event):
         """
@@ -108,6 +146,7 @@ class Window(QWidget):
         if event.buttons() & Qt.LeftButton:
             self.ldown = True
             self.mpos = event.pos()
+            self.reinstall_hook()
 
     def mouseMoveEvent(self, event):
         """
