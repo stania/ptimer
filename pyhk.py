@@ -277,7 +277,8 @@ class pyhk:
             #Add user hotkeys and functions
             for hk, fun in self.UserHKF:
                 if self.isHotkey(hk):
-                    fun() 
+                    ret = fun()
+                    return ret is None or ret is True
 
         return True
 
@@ -289,10 +290,11 @@ class pyhk:
         else:
             eventID = self.mouseUp_eventMessage2MID[event.Message]
 
-        #check for hotkey up keys           
+        #check for hotkey up keys
+        ret = None
         for hk, fun in self.UserHKFUp:
             if hk[0] == eventID:
-                fun()             
+                ret = fun()
         
         
         try:
@@ -300,11 +302,13 @@ class pyhk:
             
         except:
             pass
-        return True
+        return ret is None or ret is True
+
 
     def OnSingleEventMouse(self, event):
         """Function to excetue single mouse events"""
 
+        ret = None
         if event.Message in self.singleEventMouseMessage:
             #test for mouse wheel:
             if event.Message == 522:
@@ -323,11 +327,11 @@ class pyhk:
             #Add user hotkeys and functions
             for hk, fun in self.UserHKF:
                 if self.isHotkey(hk):
-                    fun() 
+                    ret = fun()
 
             self.KeyDownID.remove(eventID)    
 
-        return True
+        return ret is None or ret is True
         
 
 #--------------------------------------------------------

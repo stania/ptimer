@@ -114,9 +114,11 @@ class Window(QWidget):
 
     def on_focus(self):
         self.pomodoro.start_focus()
+        return False
 
     def on_distraction(self):
         self.pomodoro.on_distraction()
+        return False
 
     def update(self):
         min = self.pomodoro.min
